@@ -2,12 +2,17 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <inttypes.h>
+
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 #define UART_BAUD_RATE 57600
 #define UART_UBRR_CALC(BAUD_,FREQ_) ((FREQ_)/((BAUD_)*16L)-1)
 
+#include "hal.h"
+
+/* for stdio FIXME: should be moved toa  better location */
 void uart_init(void)
 {
     UCSR0B |= (1<<TXEN0) | (1<<RXEN0);
@@ -53,14 +58,40 @@ void uart_pstr(char *s) {
 static FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE );
 static FILE mystdin = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
+
+
+/* core hal functions */
+void hal_delay(uint16_t ms) {
+    _delay_ms(ms); 
+}
 void hal_hardwareinit() {
+    
+    /* preparing uart as stdio */
     uart_init();
     
     stdout = &mystdout;
     stdin = &mystdin;
+    
+    /* preparing timer2 as asynchron timer*/
+    GTCCR |= (1 << TSM) | (1 << PSRASY);
+    ASSR |= (1 << AS2);
+    TCCR2A = (1 << WGM21);
+    TCCR2B |= (1 << CS22) | (1 << CS21);
+    // 32768 / 256 / 1 = 128                Intervall = 1s
+    OCR2A = 128 - 1;
+    TIMSK2 |= (1<<OCIE2A);
+    GTCCR &= ~(1 << TSM);
+    sei(); 
+}
+
+ISR (TIMER2_COMPA_vect){
+    hal_system_time++;
+    printf("H:%d\n", hal_system_time);
+    
+    TCCR2B = TCCR2B;              //Dummy Write
+    while(ASSR & ((1<<TCN2UB) | (1<<OCR2AUB) | (1<<OCR2BUB) |
+        (1<<TCR2AUB) | (1<<TCR2BUB)));
 }
 
 
-void hal_delay(uint16_t ms) {
-    _delay_ms(ms); 
-}
+

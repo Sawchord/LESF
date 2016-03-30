@@ -1,6 +1,5 @@
  
-# MCU name
-MCU = atmega328p
+# MCU name is set via export
 
 
 # Processor frequency.
@@ -10,18 +9,6 @@ MCU = atmega328p
 #     automatically to create a 32-bit value in your source code.
 #     Typical values are:
 F_CPU =  16000000
-#         F_CPU =  1843200
-#         F_CPU =  2000000
-#         F_CPU =  3686400
-#         F_CPU =  4000000
-#         F_CPU =  7372800
-#         F_CPU =  8000000
-#         F_CPU = 11059200
-#         F_CPU = 14745600
-#         F_CPU = 16000000
-#         F_CPU = 18432000
-#         F_CPU = 20000000
-#         F_CPU = 8000000
 
 
 # Output format. (can be srec, ihex, binary)

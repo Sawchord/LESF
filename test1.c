@@ -11,24 +11,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/*void uart_init(void);
-
-int uart_putchar(char c, FILE *stream);
-int uart_getchar (FILE *stream);
-
-static FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE );
-static FILE mystdin = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
-
-int uart_putchar( char c, FILE *stream )
-{
-    if( c == '\n' )
-        uart_putchar( '\r', stream );
-    
-    loop_until_bit_is_set( UCSR0A, UDRE0 );
-    UDR0 = c;
-    return 0;
-}
-
+/*
 int uart_getchar (FILE *stream)
 {
     char c;
@@ -43,17 +26,27 @@ int uart_getchar (FILE *stream)
     return c;
 }
 
-#define UART_UBRR_CALC(BAUD_,FREQ_) ((FREQ_)/((BAUD_)*16L)-1)
-
-void uart_init(void)
-{
-    UCSR0B |= (1<<TXEN0) | (1<<RXEN0);    // UART TX und RX einschalten
-    UCSR0C |= (3<<UCSZ00);    // Asynchron 8N1 
-    
-    UBRR0H = (uint8_t)( UART_UBRR_CALC( UART_BAUD_RATE, F_CPU ) >> 8 );
-    UBRR0L = (uint8_t)UART_UBRR_CALC( UART_BAUD_RATE, F_CPU );
-}
 */
+
+int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+    hal_hardwareinit();
+    printf("Hello from thread 0\n");
+    hal_delay(1000);
+    return 0;
+}
+
+int8_t tfunc1 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+    printf("Hello from thread 1\n");
+    return 0;
+}
+
+int8_t tfunc2 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+    printf("Hello from thread 2\n");
+    return 0;
+}
+
+ptthread_t thread[3];
+
 
 uint8_t ledswitch = 0x0 | (1 << PB5);
 uint8_t counter = 0;
@@ -67,19 +60,23 @@ int main (void) {
     DDRB  = 0xFF;
     DDRB &= ~( (1 << PB4) );
     
-    //uart_init();
-    
-    //stdout = &mystdout;
-    //stdin = &mystdin;
-    
-    
     ptstream_t teststream;
     ptstream_init(&teststream, 100);
     
+    /* initializing the threads */
+    ptthread_init(&thread[0], tfunc0, RUNNING, NULL, 0);
+    ptthread_init(&thread[1], tfunc1, RUNNING, NULL, 0);
+    ptthread_init(&thread[2], tfunc2, RUNNING, NULL, 0);
+    
+    ptthread_main(thread, 3);
     
     while(1) {
         
+        //tfunc0 (NULL, NULL, 0);
+        
         hal_delay(1000);
+        
+        
         
         PORTB ^= ((1 << PB5) & ledswitch);
         printf("PORTB: %d\n", PORTB);
@@ -87,7 +84,7 @@ int main (void) {
         if (PINB & (1 << PB4))  {
             ledswitch = ~ledswitch;
             printf("Setting switch to %d\n", ledswitch);
-            scanf("%d", ret);
+            scanf("%d", &ret);
         }
         
         if ((1 << PB5) & ledswitch) {
@@ -106,14 +103,9 @@ int main (void) {
         printf("Read Pointer: %d\n", teststream.read_p);
         printf("Write Pointer: %d\n", teststream.write_p);
         
-        /*int i = 0;
-        for (i = 0; i < 10; i++) {
-            printf ("%d\n", teststream.address[i]);
-        }*/
-        
-        
-        
     }
+    
+    
     
     return 0;
 }
