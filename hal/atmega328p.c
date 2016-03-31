@@ -87,7 +87,7 @@ void hal_hardwareinit() {
     /* preparing timer2 as asynchron timer*/
     hal_system_time = 0;
     GTCCR |= (1 << TSM) | (1 << PSRASY);
-    ASSR |= (1 << AS2);
+    //ASSR |= (1 << AS2);
     TCCR2A = (1 << WGM21);
     TCCR2B |= (1 << CS22) | (1 << CS20);
     // 32768 / 256 / 1 = 128                Intervall = 1s

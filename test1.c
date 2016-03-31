@@ -32,7 +32,7 @@ int uart_getchar (FILE *stream)
 }
 
 */
-uint8_t ledswitch = 0x0;
+uint8_t ledswitch = 1;
 uint8_t counter = 0;
 uint8_t count_read = 0;
 int8_t ret = 0;
@@ -41,9 +41,10 @@ int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     
     if (ledswitch == 1) {
         PORTB ^= (1 << PB5);
+        printf("Setting PB5 to %d\n", (PORTB >> PB5) & 1  );
     }
     
-    ptthread_delay(self, 10000);
+    ptthread_delay(self, 435);
     
     return 0;
 }
@@ -51,26 +52,32 @@ int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
 int8_t tfunc1 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     
     PORTB ^= (1 << PB3);
-    ptthread_delay(self, 5000);
+    printf("Setting PB3 to %d\n", (PORTB >> PB3) & 1  );
+    
+    ptthread_delay(self, 1106);
     
     return 0;
 }
 
 int8_t tfunc2 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     
+    static uint8_t pushed = 0;
+    
+    
     if (PINB & (1 << PB4))  {
-        ledswitch = 1;
-        //printf("Setting switch to %d\n", ledswitch);
+        pushed = (pushed << 1) | 1;
     }
     else {
-        ledswitch = 0;
+        pushed = (pushed << 1) | 0;
     }
     
+    if ((pushed & 3) == 1) {
+        ledswitch ^=  1;
+        printf("Setting switch to %d\n", ledswitch);
+    }
     
-    //printf("Systime:%d\n", hal_get_time());
+    ptthread_delay(self, 50);
     
-    ptthread_delay(self, 100);
-    // hal_delay(1000);
     return 0;
 }
 
@@ -95,38 +102,6 @@ int main (void) {
     
     ptthread_main(thread, 3);
     
-    /*while(1) {
-        
-        //tfunc0 (NULL, NULL, 0);
-        
-        hal_delay(1000);
-        
-        PORTB ^= ((1 << PB5) & ledswitch);
-        printf("PORTB: %d\n", PORTB);
-        
-        if (PINB & (1 << PB4))  {
-            ledswitch = ~ledswitch;
-            printf("Setting switch to %d\n", ledswitch);
-            scanf("%d", &ret);
-        }
-        
-        if ((1 << PB5) & ledswitch) {
-            
-            ret= ptstream_write(&teststream, &counter, 1);
-            
-            printf ("Writing %d with retvalue %d\n", counter, ret);
-            
-            counter++;
-        }
-        else {
-            ret = ptstream_read(&teststream, &count_read, 1);
-            printf("Read %d with retvalue %d\n", count_read, ret);
-        }
-        
-        printf("Read Pointer: %d\n", teststream.read_p);
-        printf("Write Pointer: %d\n", teststream.write_p);
-        
-    }*/
     
     return 0;
 }

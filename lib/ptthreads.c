@@ -54,7 +54,7 @@ void _update_times (ptthread_t* thread_list, uint8_t threadlist_length, uint32_t
     
     // not very intelligent overflow prevention
     // FIXME: This can be done better
-    if (now - old_time > 65000) {
+    if (now - old_time > 120000) {
         old_time = 0;
     }
     
@@ -83,19 +83,9 @@ int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
     uint8_t last_exec = 0;
     
     uint32_t time0 = 0;
-    uint32_t time1 = 0;
-    
-    
-    // if all processes are blocked or waiting, this is the next process, 
-    // that will wake up
-    uint8_t next_process = 0;
-    uint16_t next_tic = 0;
     
     while (1) {
         
-        /* experimental */
-        //_update_times(thread_list, threadlist_length, time1);
-        //time1 = hal_get_time();
         
         
         ptthread_t* thread = &thread_list[current_exec];
@@ -106,14 +96,12 @@ int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
                 
                 last_exec = current_exec;
                 
-                next_tic = 0;
-                
-                time0 = hal_get_time();
                 thread->body(thread, thread->data, thread->data_length);
-                current_exec = (current_exec + 1) % threadlist_length;
-                
-                // update time of sleeping processes
+
                 _update_times(thread_list, threadlist_length, time0);
+                time0 = hal_get_time();
+                
+                current_exec = (current_exec + 1) % threadlist_length;
                 
                 break;
             
@@ -130,25 +118,38 @@ int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
                 // current exec has run the whole list
                 // without finding an executable thread
                 if (current_exec == 
-                    (last_exec + (threadlist_length -1) % threadlist_length)){
+                    ((last_exec + (threadlist_length - 1 )) % threadlist_length)){
+                    
+                    uint8_t next_process = current_exec;
+                    uint16_t next_tic = thread->substate;
+                    uint8_t i = 0;
+                    
+                    for (i = 0; i < threadlist_length; i++) {
+                        
+                        if (thread_list[i].substate < next_tic) {
+                            
+                            next_tic = thread_list[i].substate;
+                            next_process = i;
+                            
+                        }
+                    }
+                    
                     
                     current_exec = next_process;
                     time0 = hal_get_time();
                     hal_delay(next_tic);
                     _update_times(thread_list, threadlist_length, time0);
                     
-                }
-                else {
+                    // set next process running
+                    thread_list[current_exec].state = RUNNING;
+                    thread_list[current_exec].substate = 0;
                     
-                    if (thread->substate < next_tic) {
-                        
-                        next_tic = thread->substate;
-                        next_process = current_exec;
-                        
-                    }
-                    
-                    current_exec = (current_exec + 1) % threadlist_length;
+                    time0 = hal_get_time();
+
+                    break;
                 }
+                
+                current_exec = (current_exec + 1) % threadlist_length;
                 
                 break;
             
