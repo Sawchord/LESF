@@ -1,3 +1,7 @@
+/* Copyright 2016 Leon Tan
+ * Refere to LICENSE file in main directory 
+ * or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+ * for full license conditions */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -64,7 +68,15 @@ static FILE mystdin = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_
 void hal_delay(uint16_t ms) {
     _delay_ms(ms); 
 }
+
+
+uint32_t hal_get_time() {
+    return hal_system_time;
+}
+
 void hal_hardwareinit() {
+    
+    
     
     /* preparing uart as stdio */
     uart_init();
@@ -73,12 +85,13 @@ void hal_hardwareinit() {
     stdin = &mystdin;
     
     /* preparing timer2 as asynchron timer*/
+    hal_system_time = 0;
     GTCCR |= (1 << TSM) | (1 << PSRASY);
     ASSR |= (1 << AS2);
     TCCR2A = (1 << WGM21);
-    TCCR2B |= (1 << CS22) | (1 << CS21);
+    TCCR2B |= (1 << CS22) | (1 << CS20);
     // 32768 / 256 / 1 = 128                Intervall = 1s
-    OCR2A = 128 - 1;
+    OCR2A = 128;
     TIMSK2 |= (1<<OCIE2A);
     GTCCR &= ~(1 << TSM);
     sei(); 
@@ -86,8 +99,6 @@ void hal_hardwareinit() {
 
 ISR (TIMER2_COMPA_vect){
     hal_system_time++;
-    printf("H:%d\n", hal_system_time);
-    
     TCCR2B = TCCR2B;              //Dummy Write
     while(ASSR & ((1<<TCN2UB) | (1<<OCR2AUB) | (1<<OCR2BUB) |
         (1<<TCR2AUB) | (1<<TCR2BUB)));

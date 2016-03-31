@@ -2,6 +2,7 @@ file test1.elf
 target remote localhost:1212
 load
 break main
+break ptthread_main
 continue
 
 define reset

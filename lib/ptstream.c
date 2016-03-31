@@ -1,4 +1,7 @@
-
+/* Copyright 2016 Leon Tan
+ * Refere to LICENSE file in main directory 
+ * or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+ * for full license conditions */
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -43,7 +46,7 @@ int8_t ptstream_read(ptstream_t* address, uint8_t* data, uint8_t length) {
         reader++;
     }
     
-    /* update read_p */
+    // update read_p
     address->read_p = (address->read_p + reader) % 255;
     
     
@@ -66,7 +69,7 @@ int8_t ptstream_write(ptstream_t* address, uint8_t* data, uint8_t length) {
         
     }
     
-    /* update write_p */
+    // update write_p
     address->write_p = (address->write_p + writer) % 255;
     
     return 0;

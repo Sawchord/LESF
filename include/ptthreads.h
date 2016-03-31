@@ -1,3 +1,8 @@
+/* Copyright 2016 Leon Tan
+ * Refere to LICENSE file in main directory 
+ * or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+ * for full license conditions */
+
 #ifndef PTTHREADS_N
 #define PTTHREADS_N
 
@@ -21,7 +26,7 @@
 
 /* thread control block entries */
 typedef struct ptthread_t ptthread_t;
-typedef uint8_t (*ptthread_body_t)(ptthread_t* self, uint8_t* data, uint16_t length);
+typedef int8_t (*ptthread_body_t)(ptthread_t* self, uint8_t* data, uint16_t length);
 
 struct ptthread_t {
     //uint8_t (*body) (ptthread_t*, uint8_t*, uint8_t**);
