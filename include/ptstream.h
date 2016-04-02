@@ -16,8 +16,13 @@ typedef struct {
 } ptstream_t;
 
 /* initialize a stream
+ * statically assign buffer
+ * arguments: address, length, pointer to buffer */
+int8_t pttstream_init(ptstream_t*, uint8_t, uint8_t*);
+
+/* initialize a stream
  * arguments: address, length */
-int8_t ptstream_init (ptstream_t*, uint8_t);
+int8_t ptstream_init_alloc (ptstream_t*, uint8_t);
 
 /* frees a stream */
 void ptstream_free (ptstream_t*);

@@ -32,9 +32,21 @@ int uart_getchar (FILE *stream)
 }
 
 */
+
+uint16_t ADC_Read( uint8_t channel )
+{
+    // Select channel
+    ADMUX = (ADMUX & ~(0x1F)) | (channel & 0x1F);
+    ADCSRA |= (1<<ADSC);            // single conversion
+    while (ADCSRA & (1<<ADSC) ) {   // wait for conversion to finish
+    }
+    return ADCW;                    // read ADC
+}
+
 uint8_t ledswitch = 1;
 uint8_t counter = 0;
 uint8_t count_read = 0;
+uint16_t analog_value = 0;
 int8_t ret = 0;
 
 int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
@@ -89,19 +101,19 @@ int8_t tfunc3 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     //PORTB ^= (1 << PB1);
     
     if (direction) {
-        duty_circle += 65335/50;
+        duty_circle += 65335/ 50;
     }
     else {
-        duty_circle -= 65335/50;
+        duty_circle -= 65335/ 50;
     }
     
-    if (duty_circle > 65200) {
+    if (duty_circle > 65000) {
         direction = 0;
-        OCR1A = 0xFFFF;
-        ptthread_delay(self, 2000);
-        return 0;
+        //OCR1A = 0xFFFF;
+        //ptthread_delay(self, 2000);
+        //return 0;
     }
-    else if (duty_circle < 100){
+    else if (duty_circle < 1000){
         direction = 1;
     }
     OCR1A = duty_circle;
@@ -115,7 +127,18 @@ int8_t tfunc3 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     
 }
 
-ptthread_t thread[4];
+int8_t tfunc4 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+    
+    analog_value = ADC_Read(0);
+    
+    printf("Read value %u\n", analog_value);
+    
+    ptthread_delay(self, 100);
+    
+    return 0;
+}
+
+ptthread_t thread[5];
 
 
 
@@ -145,17 +168,34 @@ int main (void) {
     // START the timer with no prescaler
     TCCR1B |= (1 << CS10);
     
+    // Initialize the ADC circuits
+    // Set external VREF
+    ADMUX = (1<<REFS0);    
+    //ADMUX = (1<<REFS1) | (1<<REFS0);
     
-    //ptstream_t teststream;
-    //ptstream_init(&teststream, 100);
+    // Set ACD to single conversion
+    ADCSRA = (1<<ADPS1) | (1<<ADPS0);     // Prescaler here??
+    ADCSRA |= (1<<ADEN);                  // activate ADC
+    
+    
+    /*
+    ADCSRA |= (1<<ADSC);                  // eine ADC-Wandlung 
+    while (ADCSRA & (1<<ADSC) ) {         // auf Abschluss der Konvertierung warten
+    }
+    (void) ADCW;  // useful?? */
+    
+    
+    ptstream_t teststream;
+    ptstream_init(&teststream, 100);
     
     /* initializing the threads */
     ptthread_init(&thread[0], tfunc0, RUNNING, NULL, 0);
     ptthread_init(&thread[1], tfunc1, RUNNING, NULL, 0);
     ptthread_init(&thread[2], tfunc2, RUNNING, NULL, 0);
     ptthread_init(&thread[3], tfunc3, RUNNING, NULL, 0);
+    ptthread_init(&thread[4], tfunc4, RUNNING, NULL, 0);
     
-    ptthread_main(thread, 4);
+    ptthread_main(thread, 5);
     
     
     return 0;

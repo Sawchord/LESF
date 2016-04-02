@@ -52,22 +52,32 @@ void _update_times (ptthread_t* thread_list, uint8_t threadlist_length, uint32_t
     int i = 0;
     uint32_t now = hal_get_time();
     
+    uint16_t timediff;
+    
     // not very intelligent overflow prevention
-    // FIXME: This can be done better
-    if (now - old_time > 120000) {
-        old_time = 0;
+    //if (now - old_time > 120000) {
+    //    old_time = 0;
+    //}
+    
+    if (now - old_time < 0) {
+        // if the timer voerflowed
+        timediff = now + (65335 - old_time);
     }
+    else {
+        timediff = now - old_time;
+    }
+    
     
     for (i = 0; i < threadlist_length; i++) {
         
         if (thread_list[i].state == SLEEP) {
             
-            if ( (int32_t) thread_list[i].substate - (int16_t) (now - old_time)  < 0) {
+            if ( thread_list[i].substate < timediff) {
                 
                 thread_list[i].substate = 0;
             }
             else {
-                thread_list[i].substate = thread_list[i].substate - (now - old_time);
+                thread_list[i].substate = thread_list[i].substate - timediff;
             }
             
         }

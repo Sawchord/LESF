@@ -8,19 +8,30 @@
 #include "ptstream.h"
 
 
-int8_t ptstream_init(ptstream_t* address, uint8_t length) {
+int8_t ptstream_init(ptstream_t* address, uint8_t length, uint8_t* buffer) {
     
-    /* allocate buffer */
-    if (  (address->address = (uint8_t*) malloc(length * sizeof (uint8_t)) )   == NULL) {
-        return -1;
-    }
-    
+    address->address = buffer;
     address->length = length;
     address->read_p = 0;
     address->write_p = 0;
     
     return 0;
+    
 }
+
+int8_t ptstream_init_alloc(ptstream_t* address, uint8_t length) {
+    
+    /* allocate buffer */
+    uint8_t* buffer;
+    if (  (buffer = (uint8_t*) malloc(length * sizeof (uint8_t)) )   == NULL) {
+        return -1;
+    }
+    
+    ptstream_init(address, length, buffer);
+    
+    return 0;
+}
+
 
 void ptstream_free(ptstream_t* address) {
     free(address->address);
