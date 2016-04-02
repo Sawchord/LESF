@@ -2,6 +2,7 @@
  * Refere to LICENSE file in main directory 
  * or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
  * for full license conditions */
+
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -38,50 +39,52 @@ void ptstream_free(ptstream_t* address) {
     free (address);
 }
 
-int8_t ptstream_read(ptstream_t* address, uint8_t* data, uint8_t length) {
+int8_t ptstream_read(ptstream_t* stream, uint8_t* data, uint8_t length) {
     
-    /* read pointer scopes from 0 to 255
-     * NOTE: in a real parallel system, here is a race condition
+    /* NOTE: in a real parallel system, here is a race condition
      * This is going to be problematic, when using ptstreams between interupscontroller and ptthreads
      */
     int reader = 0;
     
     while (reader < length) {
         
-        if ( ((reader + address->read_p) % 255) == address->write_p){
+        if ( ((reader + stream->read_p) % stream->length) == stream->write_p){
             return -1;
         }
         
-        data[reader] = address->address[((reader + address->read_p) % 255)];
+        *(data + (reader * sizeof(uint8_t))) = 
+            stream->address[((reader + stream->read_p) % stream->length)];
         
         reader++;
     }
     
     // update read_p
-    address->read_p = (address->read_p + reader) % 255;
+    stream->read_p = (stream->read_p + reader) % stream->length;
     
     
     return 0;
 }
 
 
-int8_t ptstream_write(ptstream_t* address, uint8_t* data, uint8_t length) {
+int8_t ptstream_write(ptstream_t* stream, uint8_t* data, uint8_t length) {
     
     int writer = 0;
     
     while (writer < length) {
-        writer++;
         
-        if ( ((writer + address->write_p) % 255) == address->read_p ){
+        if ( ((writer + stream->write_p + stream->length + 1) % stream->length) 
+            == stream->read_p ){
             return -1;
         }
         
-        address->address[((writer + address->write_p) % 255 )] = data[writer-1];
+        stream->address[((writer + stream->write_p) % stream->length )] = 
+             *(data + (writer * sizeof(uint8_t)));
+        writer++;
         
     }
     
     // update write_p
-    address->write_p = (address->write_p + writer) % 255;
+    stream->write_p = (stream->write_p + writer) % stream->length;
     
     return 0;
 }

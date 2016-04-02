@@ -15,7 +15,7 @@ SRC = $(TARGET:%=%.c)
 LIBDIRS = -L./lib
 LIBINCLUDES = -lptthreads
 
-HALDIRS =-L./hal
+HALDIR =-L./hal
 HALINCLUDES = -lhal
 # List C++ source files here. (C dependencies are automatically generated.)
 CPPSRC = 
@@ -70,7 +70,7 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 # Extra includes of libraries and hardware abstraction layer
 CFLAGS += $(LIBDIRS)
 CFLAGS += $(LIBINCLUDES)
-CFLAGS += $(HALDIRS)
+CFLAGS += $(HALDIR)
 CFLAGS += $(HALINCLUDES)
 
 
@@ -117,9 +117,10 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 # For simulavr only - target MCU frequency.
 DEBUG_MFREQ = $(F_CPU)
 
-# Set the DEBUG_UI to either gdb or insight.
-DEBUG_UI = gdb
+# Set the DEBUG_UI to either gdb or insight or ddd
+# DEBUG_UI = gdb
 # DEBUG_UI = insight
+DEBUG_UI = ddd
 
 # Set the debugging back-end to either avarice, simulavr.
 #DEBUG_BACKEND = avarice
@@ -132,7 +133,7 @@ GDBINIT_FILE = __avr_gdbinit
 JTAG_DEV = /dev/com1
 
 # Debugging port used to communicate between GDB / avarice / simulavr.
-DEBUG_PORT = 4242
+DEBUG_PORT = 1212
 
 # Debugging host used to communicate between GDB / avarice / simulavr, normally
 #     just set to localhost unless doing some sort of crazy debugging when 
@@ -229,22 +230,7 @@ program: $(TARGET).hex $(TARGET).eep
 	$(AVRDUDE_WRITE_EEPROM)
 
 
-# Generate avr-gdb config/init file which does the following:
-#     define the reset signal, load the target file, connect to target, and set 
-#     a breakpoint at main().
-gdb-config: 
-	@$(REMOVE) $(GDBINIT_FILE)
-	@echo define reset >> $(GDBINIT_FILE)
-	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
-	@echo end >> $(GDBINIT_FILE)
-	@echo file $(TARGET).elf >> $(GDBINIT_FILE)
-	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
-	ifeq ($(DEBUG_BACKEND),simulavr)
-	@echo load  >> $(GDBINIT_FILE)
-	endif
-	@echo break main >> $(GDBINIT_FILE)
-
-debug: gdb-config $(TARGET).elf
+debug: ./hal/*.a ./lib/*.a $(TARGET).elf
 	ifeq ($(DEBUG_BACKEND), avarice)
 	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
 	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
@@ -252,10 +238,12 @@ debug: gdb-config $(TARGET).elf
 	@$(WINSHELL) /c pause
 
 	else
-	@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
-	$(DEBUG_MFREQ) --port $(DEBUG_PORT)
-	endif
-	@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
+	#@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
+	#$(DEBUG_MFREQ) --port $(DEBUG_PORT)
+	#endif
+	#@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
+	$(shell simulavr -g -d $(MCU) -F $(F_CPU) & \
+	ddd --debugger "avr-gdb -x avr-gdbinit" )
 
 
 
@@ -320,7 +308,7 @@ extcoff: $(TARGET).elf
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
-%.elf: $(OBJ) $(LIBDIR)
+%.elf: $(OBJ) ./hal/*.a ./lib/*.a
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $^ --output $@ $(LDFLAGS) $(ALL_CFLAGS)

@@ -21,35 +21,36 @@
 
 
 #include "ptthreads.h"
+#include "ptstream.h"
 /* threading features */
 
 
 /* thread control block entries */
 typedef struct ptthread_t ptthread_t;
-typedef int8_t (*ptthread_body_t)(ptthread_t* self, uint8_t* data, uint16_t length);
+typedef int8_t (*ptthread_body_t)(ptthread_t* self);
 
 struct ptthread_t {
     //uint8_t (*body) (ptthread_t*, uint8_t*, uint8_t**);
     ptthread_body_t body;
-    
-    uint8_t* data;
-    uint16_t data_length;
-    
     int8_t state;
     uint16_t substate;
+    ptstream_t* blocker;
     
 };
 
 
 
 /* initializes a single ptthread_t in initial state */
-int8_t ptthread_init(ptthread_t*, ptthread_body_t, uint8_t, uint8_t*, uint16_t);
+int8_t ptthread_init(ptthread_t*, ptthread_body_t, uint8_t);
 
 /* change the state of a specific ptthread  */
 int8_t ptthread_setstate(ptthread_t*, int8_t);
 
 /* delay execution by at least n ms */
 int8_t ptthread_delay(ptthread_t*, uint16_t);
+
+/* block until stream has data*/
+int8_t ptthread_read_block(ptthread_t*, ptstream_t*);
 
 /* the ptthreads core loop */
 int8_t ptthread_main(ptthread_t*, uint8_t);

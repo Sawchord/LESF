@@ -6,7 +6,6 @@
 //#define F_CPU 8000000UL
 #define UART_BAUD_RATE 57600
 
-
 #include <ptthreads.h>
 #include <ptstream.h>
 #include <hal.h>
@@ -47,9 +46,14 @@ uint8_t ledswitch = 1;
 uint8_t counter = 0;
 uint8_t count_read = 0;
 uint16_t analog_value = 0;
+uint16_t old_analog_value = 0;
 int8_t ret = 0;
 
-int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+static ptthread_t thread[6];
+static uint8_t buffer[100];
+static ptstream_t teststream;
+
+int8_t yled_blink(ptthread_t* self) {
     
     if (ledswitch == 1) {
         PORTB ^= (1 << PB5);
@@ -61,7 +65,7 @@ int8_t tfunc0 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     return 0;
 }
 
-int8_t tfunc1 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+int8_t rled_blink(ptthread_t* self) {
     
     PORTB ^= (1 << PB3);
     //printf("Setting PB3 to %d\n", (PORTB >> PB3) & 1  );
@@ -71,17 +75,19 @@ int8_t tfunc1 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     return 0;
 }
 
-int8_t tfunc2 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+int8_t switch_check(ptthread_t* self) {
     
     static uint8_t pushed = 0;
     
     
-    if (PINB & (1 << PB4))  {
+    /*if (PINB & (1 << PB4))  {
         pushed = (pushed << 1) | 1;
     }
     else {
         pushed = (pushed << 1) | 0;
-    }
+    }*/
+    
+    pushed = (pushed << 1) | ((PINB & (1 << PB4)) >> PB4) ;
     
     if ((pushed & 3) == 1) {
         ledswitch ^=  1;
@@ -93,7 +99,7 @@ int8_t tfunc2 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     return 0;
 }
 
-int8_t tfunc3 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+int8_t bled_pulse(ptthread_t* self) {
     
     static uint16_t duty_circle = 0;
     static uint8_t direction = 1;
@@ -127,20 +133,45 @@ int8_t tfunc3 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
     
 }
 
-int8_t tfunc4 (ptthread_t* self, uint8_t* data, uint16_t dlength) {
+int8_t analog_read(ptthread_t* self) {
+    
+    int8_t ret;
+    uint16_t temp;
     
     analog_value = ADC_Read(0);
     
-    printf("Read value %u\n", analog_value);
+    //printf ("Delta ACD: %d\n", ((int32_t) analog_value - old_analog_value));
+    
+    if ( (int32_t) analog_value - (int32_t) old_analog_value > 50 ||
+         (int32_t) old_analog_value - (int32_t) analog_value > 50
+    ){
+        
+        ret = ptstream_write (&teststream, &analog_value, 2);
+        //printf("Val canged\n");
+    }
+    
+    old_analog_value = analog_value;
+    
+    //ret = ptstream_read(&teststream, &temp, 2);
+    
     
     ptthread_delay(self, 100);
     
     return 0;
 }
 
-ptthread_t thread[5];
-
-
+int8_t output(ptthread_t* self) {
+    uint16_t val;
+    static uint16_t times = 0;
+    if (ptstream_read( &teststream, &val, 2) == 0) {
+        times++;
+        printf("Read from stream: %u times: %u\n", val, times);
+    }
+    
+    ptthread_read_block(self, &teststream);
+    
+    return 0;
+}
 
 int main (void) {
     
@@ -155,8 +186,6 @@ int main (void) {
     
     // PB1 and PB2 is now an output
     DDRB |= (1 << DDB1)|(1 << DDB2);
-    
-    
     
     // set none-inverting mode
     TCCR1A |= (1 << COM1A1)|(1 << COM1B1);
@@ -178,24 +207,18 @@ int main (void) {
     ADCSRA |= (1<<ADEN);                  // activate ADC
     
     
-    /*
-    ADCSRA |= (1<<ADSC);                  // eine ADC-Wandlung 
-    while (ADCSRA & (1<<ADSC) ) {         // auf Abschluss der Konvertierung warten
-    }
-    (void) ADCW;  // useful?? */
     
-    
-    ptstream_t teststream;
-    ptstream_init(&teststream, 100);
+    ptstream_init(&teststream, 100, &buffer);
     
     /* initializing the threads */
-    ptthread_init(&thread[0], tfunc0, RUNNING, NULL, 0);
-    ptthread_init(&thread[1], tfunc1, RUNNING, NULL, 0);
-    ptthread_init(&thread[2], tfunc2, RUNNING, NULL, 0);
-    ptthread_init(&thread[3], tfunc3, RUNNING, NULL, 0);
-    ptthread_init(&thread[4], tfunc4, RUNNING, NULL, 0);
+    ptthread_init(&thread[0], yled_blink, RUNNING);
+    ptthread_init(&thread[1], rled_blink, RUNNING);
+    ptthread_init(&thread[2], switch_check, RUNNING);
+    ptthread_init(&thread[3], bled_pulse, RUNNING);
+    ptthread_init(&thread[4], analog_read, RUNNING);
+    ptthread_init(&thread[5], output, RUNNING);
     
-    ptthread_main(thread, 5);
+    ptthread_main(thread, 6);
     
     
     return 0;

@@ -13,15 +13,11 @@
 int8_t ptthread_init(
     ptthread_t* thread,
     ptthread_body_t function,
-    uint8_t init_state,
-    uint8_t* data,
-    uint16_t data_length
+    uint8_t init_state
 ){
     
     thread->body = function;
     
-    thread->data = data;
-    thread->data_length = data_length;
     
     thread->state = init_state;
     thread->substate = 0;
@@ -47,20 +43,29 @@ int8_t ptthread_delay(ptthread_t* thread, uint16_t ms) {
     
 }
 
+int8_t ptthread_read_block(ptthread_t* thread, ptstream_t* stream) {
+    
+    thread->state = BLOCKED;
+    
+    // blocked read has substate 0
+    thread->substate = 0;
+    thread->blocker = stream;
+    
+    return 0;
+}
 
-void _update_times (ptthread_t* thread_list, uint8_t threadlist_length, uint32_t old_time){
-    int i = 0;
+void _update_times (ptthread_t* thread_list,
+    uint8_t threadlist_length, 
+    uint32_t old_time
+){
+    
+    
+    uint8_t i = 0;
     uint32_t now = hal_get_time();
     
     uint16_t timediff;
-    
-    // not very intelligent overflow prevention
-    //if (now - old_time > 120000) {
-    //    old_time = 0;
-    //}
-    
-    if (now - old_time < 0) {
-        // if the timer voerflowed
+    if ((int32_t) now - old_time < 0) {
+        // if the timer overflowed
         timediff = now + (65335 - old_time);
     }
     else {
@@ -86,6 +91,25 @@ void _update_times (ptthread_t* thread_list, uint8_t threadlist_length, uint32_t
     
 }
 
+void _update_block (ptthread_t* thread_list, uint8_t threadlist_length ){
+    
+    uint8_t i = 0;
+    
+    for (i = 0; i < threadlist_length; i++) {
+        
+        // substate 0 means blocking read
+        // blocking write may or may not be introduced in the future
+        if (thread_list[i].state == BLOCKED && thread_list[i].substate == 0) {
+            
+            if (thread_list[i].blocker->read_p != thread_list[i].blocker->write_p) {
+                
+                thread_list[i].state = RUNNING;
+                thread_list[i].substate = 0;
+                
+            }
+        }
+    }
+}
 
 int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
     
@@ -96,46 +120,37 @@ int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
     
     while (1) {
         
-        
+        // FIXME: update every loop necessary?
+        _update_block(thread_list, threadlist_length);
         
         ptthread_t* thread = &thread_list[current_exec];
         
-        switch(thread->state) {
+        if(thread->state == RUNNING) {
             
-            case RUNNING:
-                
-                last_exec = current_exec;
-                
-                thread->body(thread, thread->data, thread->data_length);
+            last_exec = current_exec;
+            
+            thread->body(thread);
 
-                _update_times(thread_list, threadlist_length, time0);
-                time0 = hal_get_time();
-                
-                current_exec = (current_exec + 1) % threadlist_length;
-                
-                break;
+            _update_times(thread_list, threadlist_length, time0);
+            time0 = hal_get_time();
             
-            case BLOCKED:
+            current_exec = (current_exec + 1) % threadlist_length;
                 
-                /* TODO: blocked not implemented yet */
+        }
+        else if (thread->state == SLEEP || thread->state == BLOCKED) {
+        
+            // current exec has run the whole list
+            // without finding an executable thread
+            if (current_exec == 
+                ((last_exec + (threadlist_length - 1 )) % threadlist_length)){
                 
-                current_exec = (current_exec + 1) % threadlist_length;
+                uint8_t next_process = current_exec;
+                uint16_t next_tic = thread->substate;
+                uint8_t i = 0;
                 
-                break;
-            
-            case SLEEP:
-                
-                // current exec has run the whole list
-                // without finding an executable thread
-                if (current_exec == 
-                    ((last_exec + (threadlist_length - 1 )) % threadlist_length)){
+                for (i = 0; i < threadlist_length; i++) {
                     
-                    uint8_t next_process = current_exec;
-                    uint16_t next_tic = thread->substate;
-                    uint8_t i = 0;
-                    
-                    for (i = 0; i < threadlist_length; i++) {
-                        
+                    if (thread_list[i].state == SLEEP) {
                         if (thread_list[i].substate < next_tic) {
                             
                             next_tic = thread_list[i].substate;
@@ -143,30 +158,28 @@ int8_t ptthread_main(ptthread_t* thread_list, uint8_t threadlist_length){
                             
                         }
                     }
-                    
-                    
-                    current_exec = next_process;
-                    time0 = hal_get_time();
-                    hal_delay(next_tic);
-                    _update_times(thread_list, threadlist_length, time0);
-                    
-                    // set next process running
-                    thread_list[current_exec].state = RUNNING;
-                    thread_list[current_exec].substate = 0;
-                    
-                    time0 = hal_get_time();
-
-                    break;
                 }
                 
-                current_exec = (current_exec + 1) % threadlist_length;
                 
-                break;
-            
-            
-            default:
-                // should never be reached
-                break;
+                current_exec = next_process;
+                time0 = hal_get_time();
+                hal_delay(next_tic);
+                _update_times(thread_list, threadlist_length, time0);
+                
+                // set next process running
+                thread_list[current_exec].state = RUNNING;
+                thread_list[current_exec].substate = 0;
+                
+                time0 = hal_get_time();
+                
+            }
+            else {
+                current_exec = (current_exec + 1) % threadlist_length;
+            }
+                
+        }
+        else {
+            // should never be reached
         }
     }
 }
