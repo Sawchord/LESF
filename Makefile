@@ -1,3 +1,6 @@
+# Include board specific options
+include ./makeincludes/$(BOARD).mk
+
 # Target file name (without extension).
 TARGET = test1
 
@@ -165,7 +168,7 @@ ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GENDEPFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
-include ./Include.mk
+include ./makeincludes/Include.mk
 
 
 # Default target.

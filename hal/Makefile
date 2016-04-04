@@ -1,8 +1,11 @@
+# Include board specific options
+include ../makeincludes/$(BOARD).mk
+
 # Target file name (without extension).
 TARGET = $(MCU)
 
 
-# Include folder for lisb
+# Include folder for lib
 INCLUDES = -I"../include"
 
 # Object files directory
@@ -110,7 +113,7 @@ ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GENDEPFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
-include ../Include.mk
+include ../makeincludes/Include.mk
 
 
 # Default target.

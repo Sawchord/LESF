@@ -9,7 +9,7 @@
 #     calculate timings. Do NOT tack on a 'UL' at the end, this will be done
 #     automatically to create a 32-bit value in your source code.
 #     Typical values are:
-F_CPU =  16000000
+# F_CPU is set by board specification
 
 
 # Output format. (can be srec, ihex, binary)
@@ -87,12 +87,15 @@ CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 # to get a full listing.
 #
 #AVRDUDE_PROGRAMMER = pony-stk200
-AVRDUDE_PROGRAMMER = stk500v1
+#AVRDUDE_PROGRAMMER = stk500
+#AVRDUDE_PROGRAMMER = arduino
+AVRDUDE_PROGRAMMER = arduino 
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = /dev/ttyACM0
+# AVRDUDE_PORT = /dev/ttyACM0
+AVRDUDE_PORT = $(PORT)
 
-AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
+AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex:i
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
 
 
@@ -110,11 +113,11 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -F -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS += -F -p $(MCU) -D -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
-
+AVRDUDE_FLAGS += -C/usr/share/arduino/hardware/tools/avrdude.conf
 
 
 #---------------- Library Options ----------------
