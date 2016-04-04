@@ -18,11 +18,11 @@ typedef struct {
 /* initialize a stream
  * statically assign buffer
  * arguments: address, length, pointer to buffer */
-int8_t pttstream_init(ptstream_t*, uint8_t, uint8_t*);
+int8_t pttstream_init(ptstream_t*, uint16_t, uint8_t*);
 
 /* initialize a stream
  * arguments: address, length */
-int8_t ptstream_init_alloc (ptstream_t*, uint8_t);
+int8_t ptstream_init_alloc (ptstream_t*, uint16_t);
 
 /* frees a stream */
 void ptstream_free (ptstream_t*);
@@ -31,13 +31,13 @@ void ptstream_free (ptstream_t*);
  * returns 0 on success
  * return -1 on underflow and does not update the read pointer
  * however, data is written to data pointerand it is up to the user to discard it */
-int8_t ptstream_write (ptstream_t*, uint8_t*, uint8_t);
+int8_t ptstream_write (ptstream_t*, uint8_t*, uint16_t);
 
 /* read n bytes from stream
  * returns 0 on success */
-int8_t ptstream_read (ptstream_t*, uint8_t*, uint8_t);
+int8_t ptstream_read (ptstream_t*, uint8_t*, uint16_t);
 
-/* TODO: blocked read 
+/* 
  * TODO: printf like write and read
  */
 

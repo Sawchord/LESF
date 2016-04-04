@@ -6,34 +6,84 @@
 #ifndef MUCI_H
 #define MUCI_H
 
+#include "ptstream.h"
+
+
+
+#define INIT 0
+#define RTS 1
+#define SEND 2
+#define CTR 3
+#define RECV 4
+#define DRAWOUT 5
+#define IGNORE 6
+#define STARTUP 7
+
+/*typedef struct ipv6_address_t {
+    uint8_t add[16];
+} ipv6_address_t;*/
+typedef uint8_t ipv6_address_t[16];
+
+typedef struct muci_frame_t {
+    uint16_t dest;
+    uint16_t src;
+    uint16_t length;
+    uint8_t* buffer;
+    uint16_t CRC16;
+} muci_frame_t;
+
+
 typedef struct muci_iface_t {
+    uint8_t data_ddr;
     uint8_t data_port;
     uint8_t data_pin;
+    uint8_t data_selector;
+    uint8_t clk_ddr;
     uint8_t clk_port;
     uint8_t clk_pin;
+    uint8_t clk_selector;
+    
+    
+    uint8_t state;
+    uint16_t substate;
+    
+    ptstream_t* send_buffer;
+    ptstream_t* recv_buffer;
+    
+    
+    // TODO: Make these hardcodeable in program space
+    ipv6_address_t address;
+    //uint8_t network[14];
+    //uint16_t address;
     
 } muci_iface_t;
 
+// sends the frame by copying to send buffer
+//int8_t muci_send_frame(muci_iface_t*, muci_frame_t*);
+
+// receives frame by reading from readbuffer
+//int8_t muci_recv_frame(muci_iface_t*, muci_frame_t*);
+
+// sends length data in buffer to address
+int8_t muci_send(muci_iface_t*, uint8_t*, uint16_t*);
+
+// receives message, returns pointer to data, length of message and sender
+int8_t muci_recv(muci_iface_t*, ipv6_address_t*, uint8_t**, uint16_t*);
 
 /*
  * Initializes the muci interface
  */
-int8_t muci_init(muci_iface_t*, uint8_t, uint8_t, uint8_t, uint8_t);
-
-/*
- * Sends data oer the muci network
- * Arguments: interface, buffer, bufferlength
- */
-int8_t muci_send(muci_iface_t*, void*, uint16_t);
-
-/* 
- * Non-blocking receive routine
- * Must be called in apropiate time to receive data
- * Return 0 on success
- * Return -1 on buffer overflow
- * Return 1 on no data
- * Arguments: Interface, buffer, bufferlength
- */
-int8_t muci_recv(muci_iface_t*, void*, uint16_t);
+int8_t muci_init(muci_iface_t*, 
+                 uint8_t, // data_ddr
+                 uint8_t, // data_port
+                 uint8_t, // data_pin
+                 uint8_t, // data_selector
+                 uint8_t, // clk_ddr
+                 uint8_t, // clk_port
+                 uint8_t, // clk_pin
+                 uint8_t, // clk_selector
+                 ptstream_t*, 
+                 ptstream_t*
+                );
 
 #endif

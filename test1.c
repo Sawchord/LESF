@@ -3,7 +3,6 @@
  * or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
  * for full license conditions */
 
-//#define F_CPU 8000000UL
 #define UART_BAUD_RATE 57600
 
 #include <ptthreads.h>

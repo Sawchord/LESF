@@ -14,8 +14,8 @@ Dependencies:
 Todolist:
 - hal_delay() in powersave mode
 - vmmu???
+- remove compiler warnings on ptstream datatype
 - Fix the Makefile
     - Rebuild libs when make program and they have been changed
     - get make debug right
-    - test on Arduino Nano
     

@@ -9,7 +9,7 @@
 #include "ptstream.h"
 
 
-int8_t ptstream_init(ptstream_t* address, uint8_t length, uint8_t* buffer) {
+int8_t ptstream_init(ptstream_t* address, uint16_t length, uint8_t* buffer) {
     
     address->address = buffer;
     address->length = length;
@@ -20,7 +20,7 @@ int8_t ptstream_init(ptstream_t* address, uint8_t length, uint8_t* buffer) {
     
 }
 
-int8_t ptstream_init_alloc(ptstream_t* address, uint8_t length) {
+int8_t ptstream_init_alloc(ptstream_t* address, uint16_t length) {
     
     /* allocate buffer */
     uint8_t* buffer;
@@ -39,7 +39,7 @@ void ptstream_free(ptstream_t* address) {
     free (address);
 }
 
-int8_t ptstream_read(ptstream_t* stream, uint8_t* data, uint8_t length) {
+int8_t ptstream_read(ptstream_t* stream, uint8_t* data, uint16_t length) {
     
     /* NOTE: in a real parallel system, here is a race condition
      * This is going to be problematic, when using ptstreams between interupscontroller and ptthreads
@@ -66,7 +66,7 @@ int8_t ptstream_read(ptstream_t* stream, uint8_t* data, uint8_t length) {
 }
 
 
-int8_t ptstream_write(ptstream_t* stream, uint8_t* data, uint8_t length) {
+int8_t ptstream_write(ptstream_t* stream, uint8_t* data, uint16_t length) {
     
     int writer = 0;
     

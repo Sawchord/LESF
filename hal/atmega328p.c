@@ -69,10 +69,19 @@ void hal_delay(uint16_t ms) {
     _delay_ms(ms); 
 }
 
+void hal_interupt_disable() {
+    cli();
+}
+
+
+void hal_interupt_enable() {
+    sei();
+}
 
 uint32_t hal_get_time() {
     return hal_system_time;
 }
+
 
 void hal_hardwareinit() {
     

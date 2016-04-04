@@ -2,7 +2,7 @@
 include ./makeincludes/$(BOARD).mk
 
 # Target file name (without extension).
-TARGET = test1
+# TARGET = test1
 
 # Include folder for lisb
 # INCLUDES = -I"./include"

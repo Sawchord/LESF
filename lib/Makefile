@@ -12,7 +12,7 @@ OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = ptthreads.c ptstream.c
+SRC = ptthreads.c ptstream.c muci.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)

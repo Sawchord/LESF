@@ -17,6 +17,12 @@ static volatile uint32_t hal_system_time;
 void hal_delay(uint16_t);
 uint32_t hal_get_time(void);
 
+/* activate interups */
+void hal_interrupt_enable();
+
+/* deactivate interups*/
+void hal_interrupt_disable();
+
 
 /* should be called by main to init hardware properly */
 void hal_hardwareinit(void);
