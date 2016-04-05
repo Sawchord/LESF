@@ -14,14 +14,17 @@
 static volatile uint32_t hal_system_time;
 
 /* Delay execution by n miliseconds */
-void hal_delay(uint16_t);
+void hal_delay(uint32_t);
+void hal_delay_us(uint32_t);
+
 uint32_t hal_get_time(void);
+void hal_update_time(uint32_t);
 
 /* activate interups */
-void hal_interrupt_enable();
+void hal_interrupt_enable(void);
 
 /* deactivate interups*/
-void hal_interrupt_disable();
+void hal_interrupt_disable(void);
 
 
 /* should be called by main to init hardware properly */

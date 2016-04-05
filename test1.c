@@ -78,14 +78,6 @@ int8_t switch_check(ptthread_t* self) {
     
     static uint8_t pushed = 0;
     
-    
-    /*if (PINB & (1 << PB4))  {
-        pushed = (pushed << 1) | 1;
-    }
-    else {
-        pushed = (pushed << 1) | 0;
-    }*/
-    
     pushed = (pushed << 1) | ((PINB & (1 << PB4)) >> PB4) ;
     
     if ((pushed & 3) == 1) {
@@ -150,10 +142,7 @@ int8_t analog_read(ptthread_t* self) {
     }
     
     old_analog_value = analog_value;
-    
-    //ret = ptstream_read(&teststream, &temp, 2);
-    
-    
+       
     ptthread_delay(self, 100);
     
     return 0;

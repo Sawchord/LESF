@@ -15,6 +15,7 @@ Todolist:
 - hal_delay() in powersave mode
 - vmmu???
 - remove compiler warnings on ptstream datatype
+- ptstream buffer overflow test
 - Fix the Makefile
     - Rebuild libs when make program and they have been changed
     - get make debug right

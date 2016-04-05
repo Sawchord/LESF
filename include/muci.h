@@ -34,30 +34,34 @@ typedef struct muci_frame_t {
 
 
 typedef struct muci_iface_t {
-    uint8_t data_ddr;
-    uint8_t data_port;
-    uint8_t data_pin;
+    volatile uint8_t* data_ddr;
+    volatile uint8_t* data_port;
+    volatile uint8_t* data_pin;
     uint8_t data_selector;
-    uint8_t clk_ddr;
-    uint8_t clk_port;
-    uint8_t clk_pin;
+    volatile uint8_t* clk_ddr;
+    volatile uint8_t* clk_port;
+    volatile uint8_t* clk_pin;
     uint8_t clk_selector;
     
     
     uint8_t state;
     uint16_t substate;
     
+    uint16_t baudrate;
+    
     ptstream_t* send_buffer;
     ptstream_t* recv_buffer;
     
-    
+    /* Since this is layer 2 stuff, it should have its own abstraction
     // TODO: Make these hardcodeable in program space
     ipv6_address_t address;
     //uint8_t network[14];
-    //uint16_t address;
+    //uint16_t address;*/
     
 } muci_iface_t;
 
+
+int8_t muci_update(muci_iface_t*);
 // sends the frame by copying to send buffer
 //int8_t muci_send_frame(muci_iface_t*, muci_frame_t*);
 
@@ -74,16 +78,17 @@ int8_t muci_recv(muci_iface_t*, ipv6_address_t*, uint8_t**, uint16_t*);
  * Initializes the muci interface
  */
 int8_t muci_init(muci_iface_t*, 
-                 uint8_t, // data_ddr
-                 uint8_t, // data_port
-                 uint8_t, // data_pin
+                 volatile uint8_t*, // data_ddr
+                 volatile uint8_t*, // data_port
+                 volatile uint8_t*, // data_pin
                  uint8_t, // data_selector
-                 uint8_t, // clk_ddr
-                 uint8_t, // clk_port
-                 uint8_t, // clk_pin
+                 volatile uint8_t*, // clk_ddr
+                 volatile uint8_t*, // clk_port
+                 volatile uint8_t*, // clk_pin
                  uint8_t, // clk_selector
-                 ptstream_t*, 
-                 ptstream_t*
+                 ptstream_t*, // send_buffer
+                 ptstream_t*, // recv_buffer
+                 uint16_t // baudrate
                 );
 
 #endif

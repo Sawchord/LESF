@@ -1,3 +1,3 @@
 
-MCU = atmega328p
+MCU = atmega328
 F_CPU =  16000000

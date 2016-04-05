@@ -16,7 +16,7 @@
 
 #include "hal.h"
 
-/* for stdio FIXME: should be moved toa  better location */
+/* for stdio FIXME: should be moved to a better location */
 void uart_init(void)
 {
     UCSR0B |= (1<<TXEN0) | (1<<RXEN0);
@@ -65,21 +65,30 @@ static FILE mystdin = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_
 
 
 /* core hal functions */
-void hal_delay(uint16_t ms) {
+void hal_delay(uint32_t ms) {
     _delay_ms(ms); 
 }
 
-void hal_interupt_disable() {
+void hal_delay_us(uint32_t us) {
+    _delay_us(us);
+}
+
+
+void hal_interrupt_disable() {
     cli();
 }
 
 
-void hal_interupt_enable() {
+void hal_interrupt_enable() {
     sei();
 }
 
 uint32_t hal_get_time() {
     return hal_system_time;
+}
+
+void hal_update_time(uint32_t ms) {
+    hal_system_time += ms;
 }
 
 

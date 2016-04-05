@@ -1,8 +1,8 @@
-file test1.elf
+file test2.elf
 target remote localhost:1212
 load
-#break main
-break ptthread_main
+break main
+#break ptthread_main
 continue
 
 define reset

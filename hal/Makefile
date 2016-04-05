@@ -73,6 +73,7 @@ ASFLAGS = -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-gstabs
 
 
 
+
 #---------------- External Memory Options ----------------
 
 # 64 KB of external RAM, starting after internal RAM (ATmega128!),
@@ -115,6 +116,12 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 include ../makeincludes/Include.mk
 
+
+# Optimization level, can be [0, 1, 2, 3, s]. 
+#     0 = turn off optimization. s = optimize for size.
+#     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
+# NOTE: Hals have to be build unoptimized
+OPT = 0
 
 # Default target.
 all: begin gccversion sizebefore build sizeafter end

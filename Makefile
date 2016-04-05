@@ -241,10 +241,6 @@ debug: ./hal/*.a ./lib/*.a $(TARGET).elf
 	@$(WINSHELL) /c pause
 
 	else
-	#@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
-	#$(DEBUG_MFREQ) --port $(DEBUG_PORT)
-	#endif
-	#@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
 	$(shell simulavr -g -d $(MCU) -F $(F_CPU) & \
 	ddd --debugger "avr-gdb -x avr-gdbinit" )
 
