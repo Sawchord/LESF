@@ -16,6 +16,7 @@ Todolist:
 - vmmu???
 - remove compiler warnings on ptstream datatype
 - ptstream buffer overflow test
+- ptthread_block_read does not seem to work, it ignores the block condition
 - Fix the Makefile
     - Rebuild libs when make program and they have been changed
     - get make debug right

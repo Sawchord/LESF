@@ -9,7 +9,12 @@
 #include "muci.h"
 #include "ptstream.h"
 
+// need to be removed later
+#include <avr/io.h>
+
+
 #define US 1000000L
+#define WAIT_ITS 8
 
 int8_t muci_init(muci_iface_t* interface,
                  volatile uint8_t* data_ddr,
@@ -59,6 +64,7 @@ int8_t muci_init(muci_iface_t* interface,
 
 
 int8_t muci_update(muci_iface_t* interface) {
+    uint32_t delta_t;
     
     switch (interface->state) {
         
@@ -92,9 +98,6 @@ int8_t muci_update(muci_iface_t* interface) {
                 interface->state = CTR;
                 interface->substate = 0;
                 
-                // Set CTR/Clk to Input
-                *(interface->clk_ddr) &= ~(1 << interface->clk_selector);
-                *(interface->clk_port) &= ~(1 << interface->clk_selector);
                 
                 return CTR;
             }
@@ -114,6 +117,7 @@ int8_t muci_update(muci_iface_t* interface) {
                 *(interface->clk_ddr) &= (1 << interface->data_selector);
                 *(interface->clk_port) &= (1 << interface->data_selector);
                 
+                // wait for CTR from other nodes
                 return RTS;
             }
             
@@ -125,15 +129,15 @@ int8_t muci_update(muci_iface_t* interface) {
             // need to deactivate interrupts, this is a timed event
             hal_interrupt_disable();
             // count time in microseconds
-            uint32_t delta_t = 0;
+            delta_t = 0;
             
-            // wait until CTR/Clk gets low
+            // polling wait until CTR/Clk gets low
             while ( *(interface->clk_pin) & (1 << interface->clk_selector)) {
-                // polling wait
+                
                 delta_t += US / interface->baudrate;
                 hal_delay_us(US / interface->baudrate);
                 
-                //printf("Wait until CTR gets low, using baudrate %d\n", (US/interface->baudrate));
+                //printf("Sender waits until CTR gets low.\n");
                 
                 // TODO: DRAWOUT if time takes to long
             }
@@ -148,6 +152,9 @@ int8_t muci_update(muci_iface_t* interface) {
             *(interface->clk_port) &= ~(1 << interface->clk_selector);
             *(interface->clk_ddr) |= (1 << interface->clk_selector);
             
+            // wait at least two phases to prevent RTS to be read as data
+            hal_delay_us( (2*US)/ interface->baudrate);
+            
             // begin the send process
             // send all data on the send_buffer
             while (interface->send_buffer->read_p != interface->send_buffer->write_p) {
@@ -161,13 +168,15 @@ int8_t muci_update(muci_iface_t* interface) {
                 
                 for (bitc = 0; bitc < 8; bitc++) {
                     
+                    // put the data to the Data Pin
+                    *(interface->data_port) ^= ( -((byte >> bitc) & 1) ^ *(interface->data_port))
+                    & (1 << interface->data_selector);
+                        
+                    //printf(".%d.", (byte >> bitc) & 1);
+                    
                     // raise Clk 
                     *(interface->clk_port) |= (1 << interface->clk_selector);
                     
-                    
-                    // put the data to the Data Pin
-                    *(interface->data_port) ^= ( -((byte >> bitc) & 1) ^ *(interface->data_port))
-                        & (1 << interface->data_selector);
                     
                     // wait
                     hal_delay_us(US / (2* interface->baudrate) );
@@ -189,14 +198,117 @@ int8_t muci_update(muci_iface_t* interface) {
             
             hal_update_time(delta_t / 1000);
             hal_interrupt_enable();
+            
+            // To signal hangup, wait for WAIT_ITS us
+            hal_delay_us(WAIT_ITS);
+            
             return INIT;
             
             break;
             
         case CTR:
+            // start timed event
+            hal_interrupt_disable();
             
-            //TODO: Receive part
+            // Set CTR/Clk to Input to signal ready
+            *(interface->clk_ddr) &= ~(1 << interface->clk_selector);
+            *(interface->clk_port) &= ~(1 << interface->clk_selector);
             
+            // wait at least two phases to prevent RTS to be read as data
+            hal_delay_us( (2*US)/ interface->baudrate);
+            
+            delta_t = 0;
+            
+            uint8_t byte = 0;
+            uint8_t bitc = 0;
+            while (1) {
+                
+                // polling wait until CTR/Clk raises high
+                while ( !(*(interface->clk_pin) & (1 << interface->clk_selector)) ) {
+                    
+                    delta_t += US / (2* interface->baudrate);
+                    hal_delay_us(US / (2* interface->baudrate));
+                    
+                    //printf("Receiver waits until CTR gets high.\n");
+                    //printf("^");
+                    
+                    interface->substate++;
+                    if (interface->substate > 2 * WAIT_ITS) {
+                        
+                        *(interface->clk_port) |= (1 << interface->clk_selector);
+                        *(interface->clk_ddr) |= ( 1 << interface->clk_selector);
+                        
+                        // got back to init
+                        interface->state = INIT;
+                        interface->substate = 0;
+                        
+                        hal_update_time(delta_t / 1000);
+                        hal_interrupt_enable();
+                        return INIT;
+                    }
+                    
+                }
+                
+                interface->substate = 0;
+                
+                uint8_t read_bit;
+                read_bit = ( ( *(interface->data_pin) & (1 << interface->data_selector) )
+                >> interface->data_selector);
+                
+                //printf(".%d.", read_bit);
+                
+                byte ^= (-read_bit ^ byte) & (1 << bitc);
+                
+                bitc++;
+                
+                if (bitc == 8) {
+                    
+                    //printf("B:%x", byte);
+                    ptstream_write(interface->recv_buffer, &byte, 1);
+                    bitc = 0;
+                    byte = 0;
+                }
+                
+                
+                // polling wait until CTR/Clk gets low
+                while (*(interface->clk_pin) & (1 << interface->clk_selector)) {
+                    
+                    delta_t += US / (2* interface->baudrate);
+                    hal_delay_us(US / (2* interface->baudrate));
+                    
+                    //printf("Receiver waits until CTR gets low.\n");
+                    //printf("-");
+                    
+                    interface->substate++;
+                    if (interface->substate > 2 * WAIT_ITS) {
+                        
+                        *(interface->clk_port) |= (1 << interface->clk_selector);
+                        *(interface->clk_ddr) |= ( 1 << interface->clk_selector);
+                        
+                        // got back to init
+                        interface->state = INIT;
+                        interface->substate = 0;
+                        
+                        hal_update_time(delta_t / 1000);
+                        hal_interrupt_enable();
+                        return INIT;
+                    }
+                }
+                
+                interface->substate = 0;
+                
+            }
+            
+            /* probably dead code
+            printf("time to go back to init\n");
+            // update time go back to init
+            interface->state = INIT;
+            interface->substate = 0;
+            
+            hal_update_time(delta_t / 1000);
+            hal_interrupt_enable();
+            return INIT;
+            */
             break;
         
         case DRAWOUT:

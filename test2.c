@@ -56,7 +56,7 @@ int8_t analog_read(ptthread_t* self) {
             (int32_t) old_analog_value - (int32_t) analog_value > 50
         ){
             
-            ptstream_write (&send0, &analog_value, 2);
+            ptstream_write (&send0, (void*) &analog_value, 2);
             //printf("Val canged\n");
             PORTB ^= (1 << PB5);
             printf("Read analog value %d \n", analog_value);
@@ -86,28 +86,7 @@ int8_t muci_updater(ptthread_t* self) {
         //return 0;
     }
     
-    printf("IFSTATE: %d\n", ret);
-    return 0;
-}
-
-int8_t sender(ptthread_t* self) {
-    
-    
-    
-    ptthread_delay(self, 2000);
-    return 0;
-}
-
-int8_t debug_out(ptthread_t* self) {
-    ipv6_address_t msg_src;
-    uint8_t* buf;
-    uint16_t buflen;
-    
-    ptthread_read_block(self, &recv0);
-    muci_recv(&interface0, &msg_src, &buf, &buflen);
-    
-    // TODO: convenient print
-    
+    //printf("IFSTATE: %d\n", ret);
     return 0;
 }
 
@@ -135,9 +114,9 @@ int main (void) {
     ptstream_init_alloc(&recv0, 255);
     
     muci_init(&interface0, &DDRD, &PORTD, &PIND, PD7,
-            &DDRD, &PORTD, &PIND, PD6, &send0, &recv0, 115200);
+            &DDRD, &PORTD, &PIND, PD6, &send0, &recv0, 3000);
     
-    ptstream_write(&send0, &teststring, 100);
+    ptstream_write(&send0, (void*) &teststring, 10);
     printf("Send text message\n");
     
     ptthread_init(&thread[0], analog_read, RUNNING);
